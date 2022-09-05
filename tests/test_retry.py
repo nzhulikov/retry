@@ -1,3 +1,5 @@
+import asyncio
+
 try:
     from unittest.mock import create_autospec
 except ImportError:
@@ -183,3 +185,18 @@ def test_retry_call_with_kwargs():
 
     assert result == kwargs['value']
     assert f_mock.call_count == 1
+
+
+def test_retry_awaitable():
+    hit = [0]
+    tries = 3
+
+    @retry(tries=tries)
+    async def f():
+        hit[0] += 1
+        raise Exception()
+
+    with pytest.raises(Exception):
+        asyncio.run(f())
+
+    assert hit[0] == tries

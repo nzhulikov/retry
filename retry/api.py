@@ -1,3 +1,5 @@
+import asyncio
+import inspect
 import logging
 import random
 import time
@@ -10,8 +12,8 @@ from .compat import decorator
 logging_logger = logging.getLogger(__name__)
 
 
-def __retry_internal(f, exceptions=Exception, tries=-1, delay=0, max_delay=None, backoff=1, jitter=0,
-                     logger=logging_logger):
+async def __retry_internal(f, exceptions=Exception, tries=-1, delay=0, max_delay=None, backoff=1, jitter=0,
+                           logger=logging_logger):
     """
     Executes a function and retries it if it failed.
 
@@ -30,7 +32,10 @@ def __retry_internal(f, exceptions=Exception, tries=-1, delay=0, max_delay=None,
     _tries, _delay = tries, delay
     while _tries:
         try:
-            return f()
+            if asyncio.iscoroutinefunction(f) and not inspect.isgeneratorfunction(f):
+                return await f()
+            else:
+                return f()
         except exceptions as e:
             _tries -= 1
             if not _tries:
